@@ -38,13 +38,16 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
 
+  console.log('AdminDashboard: userId=', userId, 'isTelegram=', isTelegram);
+
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        console.log('Fetching apps for moderation');
-        const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/apps`);
+        console.log('Fetching apps for moderation with userId:', userId);
+        const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/apps?userId=${userId}`);
         if (!response.ok) {
-          throw new Error(`Ошибка: ${response.status} ${response.statusText}`);
+          const errorData = await response.json();
+          throw new Error(`Ошибка: ${response.status} ${response.statusText} - ${errorData.error || 'Неизвестная ошибка'}`);
         }
         const data = await response.json();
         console.log('Apps data:', data);
@@ -56,18 +59,21 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
-    if (isTelegram && userId !== 'guest') {
+    if (isTelegram && userId && userId !== 'guest') {
       fetchApps();
+    } else {
+      console.log('Not fetching apps: isTelegram=', isTelegram, 'userId=', userId);
     }
   }, [userId, isTelegram]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        console.log('Fetching catalog stats');
-        const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/stats`);
+        console.log('Fetching catalog stats with userId:', userId);
+        const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/stats?userId=${userId}`);
         if (!response.ok) {
-          throw new Error(`Ошибка: ${response.status} ${response.statusText}`);
+          const errorData = await response.json();
+          throw new Error(`Ошибка: ${response.status} ${response.statusText} - ${errorData.error || 'Неизвестная ошибка'}`);
         }
         const data = await response.json();
         console.log('Stats data:', data);
@@ -77,19 +83,23 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
-    if (isTelegram && userId !== 'guest') {
+    if (isTelegram && userId && userId !== 'guest') {
       fetchStats();
+    } else {
+      console.log('Not fetching stats: isTelegram=', isTelegram, 'userId=', userId);
     }
   }, [userId, isTelegram]);
 
   const handleApprove = async (appId: string) => {
     try {
-      const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/apps/${appId}/approve`, {
+      console.log('Approving app with userId:', userId);
+      const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/apps/${appId}/approve?userId=${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
       });
       if (!response.ok) {
-        throw new Error(`Ошибка: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`Ошибка: ${response.status} ${response.statusText} - ${errorData.error || 'Неизвестная ошибка'}`);
       }
       setApps(apps.map(app => app.id === appId ? { ...app, status: 'added', rejectionReason: undefined } : app));
       alert('Приложение успешно подтверждено!');
@@ -105,13 +115,15 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/apps/${appId}/reject`, {
+      console.log('Rejecting app with userId:', userId);
+      const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/apps/${appId}/reject?userId=${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rejectionReason }),
       });
       if (!response.ok) {
-        throw new Error(`Ошибка: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`Ошибка: ${response.status} ${response.statusText} - ${errorData.error || 'Неизвестная ошибка'}`);
       }
       setApps(apps.map(app => app.id === appId ? { ...app, status: 'rejected', rejectionReason } : app));
       setRejectionReason('');

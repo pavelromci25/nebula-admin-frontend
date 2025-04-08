@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
-import { FaCheck, FaTimes } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaChartBar, FaList, FaCheckCircle } from 'react-icons/fa';
 
 interface App {
   id: string;
@@ -37,6 +37,7 @@ const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<Stat | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'onModeration' | 'added' | 'stats'>('onModeration');
 
   console.log('AdminDashboard: userId=', userId, 'isTelegram=', isTelegram);
 
@@ -156,46 +157,89 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="content slide-in">
-      <section className="section">
-        <h2 className="section-title">Модерация приложений</h2>
-        {apps.filter(app => app.status === 'onModeration').map(app => (
-          <div key={app.id} className="card">
-            <h3 className="card-title">{app.name}</h3>
-            <p className="card-text"><strong>Тип:</strong> {app.type}</p>
-            <p className="card-text"><strong>Категория:</strong> {app.category}</p>
-            <p className="card-text"><strong>Разработчик:</strong> {app.developerId}</p>
-            <p className="card-text"><strong>Короткое описание:</strong> {app.shortDescription}</p>
-            <div className="button-group">
-              <button className="button" onClick={() => handleApprove(app.id)}>
-                <FaCheck /> Подтвердить
-              </button>
-              <textarea
-                placeholder="Причина отклонения"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="input"
-              />
-              <button className="button" onClick={() => handleReject(app.id)}>
-                <FaTimes /> Отклонить
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
+      <div className="bottom-menu">
+        <button
+          className={`menu-item ${activeTab === 'onModeration' ? 'active' : ''}`}
+          onClick={() => setActiveTab('onModeration')}
+        >
+          <FaList className="menu-icon" />
+          На модерации
+        </button>
+        <button
+          className={`menu-item ${activeTab === 'added' ? 'active' : ''}`}
+          onClick={() => setActiveTab('added')}
+        >
+          <FaCheckCircle className="menu-icon" />
+          Одобренные
+        </button>
+        <button
+          className={`menu-item ${activeTab === 'stats' ? 'active' : ''}`}
+          onClick={() => setActiveTab('stats')}
+        >
+          <FaChartBar className="menu-icon" />
+          Статистика
+        </button>
+      </div>
 
-      <section className="section">
-        <h2 className="section-title">Статистика каталога</h2>
-        {stats ? (
-          <div className="card">
-            <p className="card-text"><strong>Всего приложений:</strong> {stats.totalApps}</p>
-            <p className="card-text"><strong>Всего переходов:</strong> {stats.totalClicks}</p>
-            <p className="card-text"><strong>Всего Telegram Stars:</strong> {stats.totalStars}</p>
-            <p className="card-text"><strong>Всего жалоб:</strong> {stats.totalComplaints}</p>
-          </div>
-        ) : (
-          <p>Загрузка статистики...</p>
-        )}
-      </section>
+      {activeTab === 'onModeration' && (
+        <section className="section">
+          <h2 className="section-title">На модерации</h2>
+          {apps.filter(app => app.status === 'onModeration').map(app => (
+            <div key={app.id} className="card">
+              <h3 className="card-title">{app.name}</h3>
+              <p className="card-text"><strong>Тип:</strong> {app.type}</p>
+              <p className="card-text"><strong>Категория:</strong> {app.category}</p>
+              <p className="card-text"><strong>Разработчик:</strong> {app.developerId}</p>
+              <p className="card-text"><strong>Короткое описание:</strong> {app.shortDescription}</p>
+              <div className="button-group">
+                <button className="button" onClick={() => handleApprove(app.id)}>
+                  <FaCheck /> Подтвердить
+                </button>
+                <textarea
+                  placeholder="Причина отклонения"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="input"
+                />
+                <button className="button" onClick={() => handleReject(app.id)}>
+                  <FaTimes /> Отклонить
+                </button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {activeTab === 'added' && (
+        <section className="section">
+          <h2 className="section-title">Одобренные</h2>
+          {apps.filter(app => app.status === 'added').map(app => (
+            <div key={app.id} className="card">
+              <h3 className="card-title">{app.name}</h3>
+              <p className="card-text"><strong>Тип:</strong> {app.type}</p>
+              <p className="card-text"><strong>Категория:</strong> {app.category}</p>
+              <p className="card-text"><strong>Разработчик:</strong> {app.developerId}</p>
+              <p className="card-text"><strong>Короткое описание:</strong> {app.shortDescription}</p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {activeTab === 'stats' && (
+        <section className="section">
+          <h2 className="section-title">Статистика каталога</h2>
+          {stats ? (
+            <div className="card">
+              <p className="card-text"><strong>Всего приложений:</strong> {stats.totalApps}</p>
+              <p className="card-text"><strong>Всего переходов:</strong> {stats.totalClicks}</p>
+              <p className="card-text"><strong>Всего Telegram Stars:</strong> {stats.totalStars}</p>
+              <p className="card-text"><strong>Всего жалоб:</strong> {stats.totalComplaints}</p>
+            </div>
+          ) : (
+            <p>Загрузка статистики...</p>
+          )}
+        </section>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
-import { FaCheck, FaTimes, FaChartBar, FaList, FaCheckCircle } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaChartBar, FaList, FaCheckCircle, FaUserPlus } from 'react-icons/fa';
 
 interface App {
   id: string;
@@ -8,8 +8,10 @@ interface App {
   name: string;
   shortDescription: string;
   longDescription?: string;
-  category: string;
-  additionalCategories: string[];
+  categoryGame?: string;
+  categoryApps?: string;
+  additionalCategoriesGame?: string[];
+  additionalCategoriesApps?: string[];
   icon: string;
   gallery: string[];
   video?: string;
@@ -22,6 +24,12 @@ interface App {
   contactInfo: string;
   status: 'added' | 'onModeration' | 'rejected';
   rejectionReason?: string;
+  linkApp?: string;
+  startPromoCatalog?: string;
+  finishPromoCatalog?: string;
+  startPromoCategory?: string;
+  finishPromoCategory?: string;
+  editCount?: number;
 }
 
 interface Stat {
@@ -29,6 +37,7 @@ interface Stat {
   totalClicks: number;
   totalStars: number;
   totalComplaints: number;
+  allowedDeveloperIds: string[];
 }
 
 const AdminDashboard: React.FC = () => {
@@ -38,6 +47,7 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'onModeration' | 'added' | 'stats'>('onModeration');
+  const [newDeveloperId, setNewDeveloperId] = useState<string>('');
 
   console.log('AdminDashboard: userId=', userId, 'isTelegram=', isTelegram);
 
@@ -56,7 +66,8 @@ const AdminDashboard: React.FC = () => {
         setError(null);
       } catch (error) {
         console.error('Ошибка при загрузке приложений:', error);
-        setError('Не удалось загрузить приложения. Попробуйте позже.');
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        setError('Не удалось загрузить приложения. Попробуйте позже: ' + errorMessage);
       }
     };
 
@@ -106,7 +117,8 @@ const AdminDashboard: React.FC = () => {
       alert('Приложение успешно подтверждено!');
     } catch (error) {
       console.error('Ошибка при подтверждении приложения:', error);
-      alert('Ошибка при подтверждении приложения.');
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      alert('Ошибка при подтверждении приложения: ' + errorMessage);
     }
   };
 
@@ -131,7 +143,36 @@ const AdminDashboard: React.FC = () => {
       alert('Приложение успешно отклонено!');
     } catch (error) {
       console.error('Ошибка при отклонении приложения:', error);
-      alert('Ошибка при отклонении приложения.');
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      alert('Ошибка при отклонении приложения: ' + errorMessage);
+    }
+  };
+
+  const handleAddDeveloper = async () => {
+    if (!newDeveloperId) {
+      alert('Пожалуйста, введите Telegram ID разработчика.');
+      return;
+    }
+    try {
+      console.log('Adding developer with userId:', userId, 'developerId:', newDeveloperId);
+      const response = await fetch(`https://nebula-server-ypun.onrender.com/api/admin/add-developer?userId=${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ developerId: newDeveloperId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Ошибка: ${response.status} ${response.statusText} - ${errorData.error || 'Неизвестная ошибка'}`);
+      }
+      const result = await response.json();
+      console.log('Add developer result:', result);
+      setStats(prev => prev ? { ...prev, allowedDeveloperIds: result.allowedDeveloperIds } : prev);
+      setNewDeveloperId('');
+      alert(result.message);
+    } catch (error) {
+      console.error('Ошибка при добавлении разработчика:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      alert('Ошибка при добавлении разработчика: ' + errorMessage);
     }
   };
 
@@ -188,9 +229,10 @@ const AdminDashboard: React.FC = () => {
             <div key={app.id} className="card">
               <h3 className="card-title">{app.name}</h3>
               <p className="card-text"><strong>Тип:</strong> {app.type}</p>
-              <p className="card-text"><strong>Категория:</strong> {app.category}</p>
+              <p className="card-text"><strong>Категория:</strong> {app.type === 'game' ? app.categoryGame : app.categoryApps}</p>
               <p className="card-text"><strong>Разработчик:</strong> {app.developerId}</p>
               <p className="card-text"><strong>Короткое описание:</strong> {app.shortDescription}</p>
+              <p className="card-text"><strong>Количество редакций:</strong> {app.editCount || 0}</p>
               <div className="button-group">
                 <button className="button" onClick={() => handleApprove(app.id)}>
                   <FaCheck /> Подтвердить
@@ -217,9 +259,10 @@ const AdminDashboard: React.FC = () => {
             <div key={app.id} className="card">
               <h3 className="card-title">{app.name}</h3>
               <p className="card-text"><strong>Тип:</strong> {app.type}</p>
-              <p className="card-text"><strong>Категория:</strong> {app.category}</p>
+              <p className="card-text"><strong>Категория:</strong> {app.type === 'game' ? app.categoryGame : app.categoryApps}</p>
               <p className="card-text"><strong>Разработчик:</strong> {app.developerId}</p>
               <p className="card-text"><strong>Короткое описание:</strong> {app.shortDescription}</p>
+              <p className="card-text"><strong>Количество редакций:</strong> {app.editCount || 0}</p>
             </div>
           ))}
         </section>
@@ -234,6 +277,22 @@ const AdminDashboard: React.FC = () => {
               <p className="card-text"><strong>Всего переходов:</strong> {stats.totalClicks}</p>
               <p className="card-text"><strong>Всего Telegram Stars:</strong> {stats.totalStars}</p>
               <p className="card-text"><strong>Всего жалоб:</strong> {stats.totalComplaints}</p>
+              <h3 className="section-title">Разрешённые разработчики</h3>
+              <ul>
+                {stats.allowedDeveloperIds.map(id => (
+                  <li key={id}>{id}</li>
+                ))}
+              </ul>
+              <input
+                type="text"
+                placeholder="Telegram ID разработчика"
+                value={newDeveloperId}
+                onChange={(e) => setNewDeveloperId(e.target.value)}
+                className="input"
+              />
+              <button className="button" onClick={handleAddDeveloper}>
+                <FaUserPlus /> Добавить разработчика
+              </button>
             </div>
           ) : (
             <p>Загрузка статистики...</p>
